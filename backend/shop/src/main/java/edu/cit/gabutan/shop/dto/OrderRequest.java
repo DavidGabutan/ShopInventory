@@ -1,27 +1,19 @@
 package edu.cit.gabutan.shop.dto;
 
+import java.util.List;
+
 public class OrderRequest {
 
-    private String productId;
-
-    private int quantity;
+    private List<OrderItemRequest> items;
 
     public OrderRequest() {
     }
 
-    public String getProductId() {
-        return productId;
+    public List<OrderItemRequest> getItems() {
+        return items;
     }
 
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
+    public void setItems(List<OrderItemRequest> items) {
+        this.items = items;
     }
 }
