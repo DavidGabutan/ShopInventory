@@ -9,6 +9,8 @@ import edu.cit.gabutan.shop.dto.OrderItemOutcome;
 import edu.cit.gabutan.shop.dto.OrderItemRequest;
 import edu.cit.gabutan.shop.dto.OrderRequest;
 import edu.cit.gabutan.shop.dto.OrderResponse;
+import edu.cit.gabutan.supplier.SupplierGateway;
+import edu.cit.gabutan.supplier.SupplierGatewayResult;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -25,17 +27,21 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final SupplierGateway supplierGateway;
+    
 
     public OrderServiceImpl(
             InventoryService inventoryService,
             OrderRepository orderRepository,
             OrderItemRepository orderItemRepository,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            SupplierGateway supplierGateway) {
 
         this.inventoryService = inventoryService;
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.eventPublisher = eventPublisher;
+        this.supplierGateway = supplierGateway;
     }
 
     @Override
@@ -67,6 +73,10 @@ public class OrderServiceImpl implements OrderService {
 
             if (item.getQuantity()
                     > inventory.getStock()) {
+                        supplierGateway.placeOrder(
+                                item.getProductId(),
+                                item.getQuantity()
+                        );
 
                 Order rejectedOrder = new Order();
 

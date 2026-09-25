@@ -32,63 +32,68 @@ class SupplierGatewayImpl implements SupplierGateway {
 
         if (unitsNeeded <= 0) {
             throw new IllegalArgumentException(
-                    "Units needed must be greater than zero."
-            );
+                    "Units needed must be greater than zero.");
         }
 
-        // Find the LegacySupply mapping for our product
         LegacyProductMapping mapping =
                 LegacyProductMapper.find(productId);
 
-        if (mapping == null) {
-            throw new IllegalArgumentException(
-                    "No LegacySupply mapping found for product: "
-                            + productId
-            );
-        }
-
-        // Convert required units into supplier cases
         int cases = (int) Math.ceil(
-                (double) unitsNeeded / mapping.packSize()
-        );
+                (double) unitsNeeded / mapping.packSize());
 
         int orderedUnits =
                 cases * mapping.packSize();
 
-        LocalDateTime now = LocalDateTime.now();
-
-        // Create our own supplier order record
-        SupplierOrder order = new SupplierOrder();
+        /*
+         * Create the local supplier order first.
+         * Temporary non-null values satisfy the database constraints.
+         */
+        SupplierOrder order =
+                new SupplierOrder();
 
         order.setProductId(productId);
+
+        order.setBuyerRef(
+                "TEMP-" + UUID.randomUUID());
+
+        order.setRequestId(
+                UUID.randomUUID().toString());
+
         order.setCases(cases);
         order.setUnits(orderedUnits);
-        order.setStatus(SupplierOrderStatus.PENDING);
-        order.setCreatedAt(now);
-        order.setUpdatedAt(now);
+
+        order.setStatus(
+                SupplierOrderStatus.PENDING);
+
+        order.setCreatedAt(
+                LocalDateTime.now());
+
+        order.setUpdatedAt(
+                LocalDateTime.now());
 
         /*
-         * Save first so the database generates the ID.
+         * Save and flush so the database generates the ID.
          */
-        order = repository.save(order);
+        order = repository.saveAndFlush(order);
 
         /*
-         * BuyerRef must remain the same for this reorder.
+         * BuyerRef must use our supplier_orders ID.
          */
         String buyerRef =
                 "RO-" + order.getId();
 
         /*
-         * Request ID must also remain the same
-         * when this order is retried.
+         * Keep the same request ID for this reorder.
          */
         String requestId =
-                "RO-" + order.getId() + "-" + UUID.randomUUID();
+                "RO-" + order.getId() + "-" +
+                UUID.randomUUID();
 
         order.setBuyerRef(buyerRef);
         order.setRequestId(requestId);
+        order.setUpdatedAt(LocalDateTime.now());
 
-        repository.save(order);
+        order = repository.saveAndFlush(order);
 
         try {
 
@@ -97,20 +102,20 @@ class SupplierGatewayImpl implements SupplierGateway {
                             mapping.supplierSku(),
                             cases,
                             buyerRef,
-                            requestId
-                    );
+                            requestId);
 
             LegacyPurchaseOrderAck ack =
                     LegacySupplyTranslator
                             .parsePurchaseOrderAck(response);
 
-            order.setPoNumber(ack.poNumber());
+            order.setPoNumber(
+                    ack.poNumber());
+
             order.setStatus(
-                    SupplierOrderStatus.SUBMITTED
-            );
+                    SupplierOrderStatus.SUBMITTED);
+
             order.setUpdatedAt(
-                    LocalDateTime.now()
-            );
+                    LocalDateTime.now());
 
             repository.save(order);
 
@@ -120,22 +125,19 @@ class SupplierGatewayImpl implements SupplierGateway {
                     unitsNeeded,
                     orderedUnits,
                     ack.poNumber(),
-                    "Supplier order submitted."
-            );
+                    "Supplier order submitted.");
 
         } catch (Exception e) {
-
+                e.printStackTrace();
             /*
-             * Do NOT delete the order.
-             * Keep it PENDING so the scheduled retry
-             * can send it later.
+             * LegacySupply was unavailable or rejected
+             * the request. Keep the reorder pending.
              */
             order.setStatus(
-                    SupplierOrderStatus.PENDING
-            );
+                    SupplierOrderStatus.PENDING);
+
             order.setUpdatedAt(
-                    LocalDateTime.now()
-            );
+                    LocalDateTime.now());
 
             repository.save(order);
 
@@ -145,8 +147,7 @@ class SupplierGatewayImpl implements SupplierGateway {
                     unitsNeeded,
                     orderedUnits,
                     null,
-                    "Supplier unavailable. Order remains pending."
-            );
+                    "Supplier unavailable. Order remains pending.");
         }
     }
 }
