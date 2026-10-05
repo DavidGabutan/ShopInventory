@@ -1,5 +1,6 @@
 package edu.cit.gabutan.inventory;
 
+import edu.cit.gabutan.events.InventoryChangedEvent;
 import edu.cit.gabutan.events.LowStockEvent;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -56,6 +57,11 @@ class InventoryServiceImpl implements InventoryService {
 
         Inventory updated =
                 inventoryRepository.save(item);
+        
+        eventPublisher.publishEvent(
+                    new InventoryChangedEvent(
+                            updated.getProductId(),
+                            updated.getStock()));
 
         if (updated.getStock() < LOW_STOCK_THRESHOLD) {
 
@@ -82,8 +88,16 @@ class InventoryServiceImpl implements InventoryService {
         Inventory item = getItem(productId);
 
         item.setStock(
-                item.getStock() + quantity);
-
-        return inventoryRepository.save(item);
+            item.getStock() + quantity);
+    
+        Inventory updated =
+            inventoryRepository.save(item);
+    
+        eventPublisher.publishEvent(
+            new InventoryChangedEvent(
+                    updated.getProductId(),
+                    updated.getStock()));
+    
+        return updated;
     }
 }

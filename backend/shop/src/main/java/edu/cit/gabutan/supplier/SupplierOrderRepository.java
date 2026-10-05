@@ -10,4 +10,9 @@ public interface SupplierOrderRepository
     Optional<SupplierOrder> findByBuyerRef(String buyerRef);
 
     Optional<SupplierOrder> findByRequestId(String requestId);
+
+    Optional<SupplierOrder> findFirstByProductIdAndStatusOrderByCreatedAtDesc(
+            String productId,
+            SupplierOrderStatus status
+    );
 }

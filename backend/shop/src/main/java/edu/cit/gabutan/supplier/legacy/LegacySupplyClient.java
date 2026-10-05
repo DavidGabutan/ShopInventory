@@ -4,6 +4,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import edu.cit.gabutan.channel.TianggeRuntime;
 
 @Component
 class LegacySupplyClient {
@@ -12,11 +13,12 @@ class LegacySupplyClient {
             "https://legacysupply.onrender.com/api/v1";
 
     private final RestTemplate restTemplate;
-
+    private final TianggeRuntime tianggeRuntime;
     private String sessionToken;
 
-    LegacySupplyClient() {
+    LegacySupplyClient(TianggeRuntime tianggeRuntime) {
         this.restTemplate = new RestTemplate();
+        this.tianggeRuntime = tianggeRuntime;
     }
     LegacyProductInfo getProductInfo(String productId) {
 
@@ -66,8 +68,12 @@ class LegacySupplyClient {
                 </AuthRequest>
                 """.formatted(clientId, apiKey);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_XML);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_XML);
+                headers.set(
+                        "X-Client-Instance",
+                        tianggeRuntime.getInstanceId()
+                );
 
         HttpEntity<String> request =
                 new HttpEntity<>(xml, headers);
@@ -183,6 +189,10 @@ class LegacySupplyClient {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-LS-Session", sessionToken);
+        headers.set(
+                "X-Client-Instance",
+                tianggeRuntime.getInstanceId()
+        );
 
         HttpEntity<Void> request =
                 new HttpEntity<>(headers);
@@ -203,11 +213,15 @@ class LegacySupplyClient {
             String xml,
             String requestId) {
 
-        HttpHeaders headers = new HttpHeaders();
+                HttpHeaders headers = new HttpHeaders();
 
-        headers.setContentType(MediaType.APPLICATION_XML);
-        headers.set("X-LS-Session", sessionToken);
-        headers.set("X-Request-Id", requestId);
+                headers.setContentType(MediaType.APPLICATION_XML);
+                headers.set("X-LS-Session", sessionToken);
+                headers.set("X-Request-Id", requestId);
+                headers.set(
+                        "X-Client-Instance",
+                        tianggeRuntime.getInstanceId()
+                );
 
         HttpEntity<String> request =
                 new HttpEntity<>(xml, headers);

@@ -6,4 +6,6 @@ public interface SupplierGateway {
             String productId,
             int unitsNeeded
     );
+
+    boolean hasOpenOrder(String productId);
 }

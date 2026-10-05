@@ -150,4 +150,13 @@ class SupplierGatewayImpl implements SupplierGateway {
                     "Supplier unavailable. Order remains pending.");
         }
     }
+    @Override
+        public boolean hasOpenOrder(String productId) {
+
+           return repository
+            .findFirstByProductIdAndStatusOrderByCreatedAtDesc(
+                    productId,
+                    SupplierOrderStatus.SUBMITTED)
+            .isPresent();
+        }
 }

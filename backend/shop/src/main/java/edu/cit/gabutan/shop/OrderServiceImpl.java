@@ -73,10 +73,6 @@ public class OrderServiceImpl implements OrderService {
 
             if (item.getQuantity()
                     > inventory.getStock()) {
-                        supplierGateway.placeOrder(
-                                item.getProductId(),
-                                item.getQuantity()
-                        );
 
                 Order rejectedOrder = new Order();
 
@@ -108,6 +104,7 @@ public class OrderServiceImpl implements OrderService {
                                 rejectedOrder.getOrderId()));
 
                 return new OrderResponse(
+                        rejectedOrder.getOrderId(),
                         "REJECTED",
                         "Insufficient stock for "
                                 + item.getProductId(),
@@ -170,6 +167,7 @@ public class OrderServiceImpl implements OrderService {
                             order.getOrderId()));
 
             return new OrderResponse(
+                order.getOrderId(),
                     "CONFIRMED",
                     "Order confirmed",
                     outcomes,
@@ -196,6 +194,62 @@ public class OrderServiceImpl implements OrderService {
             throw e;
         }
     }
+     @Override
+     @Transactional
+        public OrderResponse placeBackorderedOrder(
+        OrderRequest request,
+        String reason) {
+
+        if (request.getItems() == null
+            || request.getItems().isEmpty()) {
+
+        throw new RuntimeException(
+                "Order must contain at least one item");
+        }
+
+        for (OrderItemRequest item : request.getItems()) {
+
+        if (item.getQuantity() <= 0) {
+            throw new RuntimeException(
+                    "Quantity must be greater than zero");
+        }
+
+        inventoryService.getItem(item.getProductId());
+        }
+
+        Order order = new Order();
+
+        order.setStatus("BACKORDERED");
+        order.setReason(reason);
+        order.setCreatedAt(LocalDateTime.now());
+
+        orderRepository.save(order);
+
+        List<OrderItemOutcome> outcomes = new ArrayList<>();
+
+        for (OrderItemRequest item : request.getItems()) {
+
+        OrderItem orderItem = new OrderItem();
+
+        orderItem.setOrderId(order.getOrderId());
+        orderItem.setProductId(item.getProductId());
+        orderItem.setQuantity(item.getQuantity());
+
+        orderItemRepository.save(orderItem);
+
+        outcomes.add(
+                new OrderItemOutcome(
+                        item.getProductId(),
+                        "NOT_RESERVED"));
+        }
+
+        return new OrderResponse(
+            order.getOrderId(),
+            "BACKORDERED",
+            reason,
+            outcomes,
+            null);
+        }
 
     @Override
     @Transactional

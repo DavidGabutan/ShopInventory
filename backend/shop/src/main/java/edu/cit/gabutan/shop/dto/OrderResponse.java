@@ -6,10 +6,25 @@ import java.util.List;
 
 public class OrderResponse {
 
+    private Long orderId;
     private String status;
     private String reason;
     private List<OrderItemOutcome> items;
     private Inventory inventory;
+
+    public OrderResponse(
+            Long orderId,
+            String status,
+            String reason,
+            List<OrderItemOutcome> items,
+            Inventory inventory) {
+
+        this.orderId = orderId;
+        this.status = status;
+        this.reason = reason;
+        this.items = items;
+        this.inventory = inventory;
+    }
 
     public OrderResponse(
             String status,
@@ -17,10 +32,17 @@ public class OrderResponse {
             List<OrderItemOutcome> items,
             Inventory inventory) {
 
-        this.status = status;
-        this.reason = reason;
-        this.items = items;
-        this.inventory = inventory;
+        this(
+                null,
+                status,
+                reason,
+                items,
+                inventory
+        );
+    }
+
+    public Long getOrderId() {
+        return orderId;
     }
 
     public String getStatus() {
